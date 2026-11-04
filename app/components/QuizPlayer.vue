@@ -62,6 +62,15 @@ watch(userAnswers, persistSession, { deep: true });
 const currentQuestion = computed(() => props.quiz.questions[currentIndex.value]);
 const totalQuestions = computed(() => props.quiz.questions.length);
 
+// Robust fallback for question choices (especially true_false questions)
+const getQuestionChoices = (q?: Question): string[] => {
+    if (!q) return [];
+    if (q.type === 'true_false' && (!q.choices || q.choices.length < 2)) {
+        return ['True', 'False'];
+    }
+    return q.choices || [];
+};
+
 // Whether the current question has been answered (empty input counts as unanswered)
 const isCurrentQuestionAnswered = computed(() => {
     const ans = userAnswers.value[currentIndex.value];
@@ -141,7 +150,11 @@ const isAnswerCorrect = computed(() => {
 // Build a readable string of correct answers for the feedback banner
 const getCorrectAnswerText = (q: Question): string => {
     if (q.type === 'short_answer') return (q.acceptedAnswers || []).join(', ');
-    return (q.choices || []).filter((_, i) => q.correctIndices?.includes(i)).join(', ');
+    const choices = getQuestionChoices(q);
+    const correctIndices = (q.type === 'true_false' && (!q.correctIndices || q.correctIndices.length === 0))
+        ? [0]
+        : (q.correctIndices || []);
+    return choices.filter((_, i) => correctIndices.includes(i)).join(', ');
 };
 
 const checkAnswer = () => {
@@ -156,7 +169,10 @@ const isQuestionCorrect = (q: Question, qIdx: number): boolean => {
     if (ans === undefined || ans === null || ans === '') return false;
 
     if (q.type === 'single' || q.type === 'true_false') {
-        return q.correctIndices?.includes(ans) ?? false;
+        const correctIndices = (q.type === 'true_false' && (!q.correctIndices || q.correctIndices.length === 0))
+            ? [0]
+            : (q.correctIndices || []);
+        return correctIndices.includes(ans);
     }
 
     if (q.type === 'multiple') {
@@ -324,7 +340,7 @@ const cancelExit = () => {
             <div class="mt-6 space-y-3">
                 <!-- Single Choice & True/False -->
                 <template v-if="currentQuestion?.type === 'single' || currentQuestion?.type === 'true_false'">
-                    <button v-for="(choice, cIdx) in currentQuestion.choices" :key="cIdx"
+                    <button v-for="(choice, cIdx) in getQuestionChoices(currentQuestion)" :key="cIdx"
                         @click="handleSingleSelect(cIdx)"
                         :disabled="isChecked"
                         class="group flex w-full items-center justify-between rounded-xl border p-4 text-left font-medium transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"

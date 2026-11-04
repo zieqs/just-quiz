@@ -47,6 +47,14 @@ export const validateQuizJson = (data: any): ValidationResult => {
       if (!Array.isArray(accepted) || accepted.length === 0) {
         errors.push(`${label}: short_answer needs "acceptedAnswers".`);
       }
+    } else if (type === 'true_false') {
+      const choices = (Array.isArray(q.choices) && q.choices.length >= 2) ? q.choices : ['True', 'False'];
+      const correct = q.correctIndices ?? (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
+      if (!Array.isArray(correct) || correct.length === 0) {
+        errors.push(`${label}: missing correct answer (correctIndices).`);
+      } else if (correct.some((c: number) => c < 0 || c >= choices.length)) {
+        errors.push(`${label}: correctIndices out of range.`);
+      }
     } else {
       const choices = q.choices;
       if (!Array.isArray(choices) || choices.length < 2) {

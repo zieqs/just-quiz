@@ -14,17 +14,27 @@ export const useQuizDb = () => {
 
       // Choice-based questions ('single', 'multiple', 'true_false')
       // Arrays are cloned with spreads so no Vue reactive proxies leak into IndexedDB
-      choices: Array.isArray(q.choices)
-        ? [...q.choices]
-        : type === "true_false"
-          ? ["True", "False"]
-          : [],
+      choices:
+        type === "true_false"
+          ? Array.isArray(q.choices) && q.choices.length >= 2
+            ? [...q.choices]
+            : ["True", "False"]
+          : Array.isArray(q.choices)
+            ? [...q.choices]
+            : [],
 
-      correctIndices: Array.isArray(q.correctIndices)
-        ? [...q.correctIndices]
-        : typeof q.correctIndices === "number"
-          ? [q.correctIndices]
-          : [],
+      correctIndices:
+        type === "true_false"
+          ? Array.isArray(q.correctIndices) && q.correctIndices.length > 0
+            ? [q.correctIndices[0]]
+            : typeof q.correctIndices === "number"
+              ? [q.correctIndices]
+              : [0]
+          : Array.isArray(q.correctIndices)
+            ? [...q.correctIndices]
+            : typeof q.correctIndices === "number"
+              ? [q.correctIndices]
+              : [],
 
       // Text-based questions ('short_answer')
       acceptedAnswers: Array.isArray(q.acceptedAnswers)
