@@ -1,6 +1,7 @@
 <!-- app/components/QuizEditor.vue -->
 <script setup lang="ts">
 import { generateId } from '~/utils/id';
+import { normalizeQuiz, validateQuizJson } from '~~/shared/quiz';
 import type { Quiz, Question, QuestionType } from '~/types/quiz';
 
 const props = defineProps<{
@@ -112,84 +113,18 @@ function toggleCorrectChoice(q: Question, cIdx: number) {
 
 // === Save ===
 
+const validationErrors = ref<string[]>([]);
+
 function handleSave() {
-    // Basic client-side validation
-    if (!quizTitle.value.trim()) {
-        alert('Please enter a quiz title.');
-        return;
-    }
-    if (questions.value.length === 0) {
-        alert('Add at least one question.');
-        return;
-    }
-
-    for (const [i, q] of questions.value.entries()) {
-        if (!q.text.trim()) {
-            alert(`Question ${i + 1} is missing question text.`);
-            return;
-        }
-        if (q.type === 'single' || q.type === 'multiple') {
-            const validChoices = (q.choices || []).filter(c => c.trim());
-            if (validChoices.length < 2) {
-                alert(`Question ${i + 1} needs at least 2 choices.`);
-                return;
-            }
-            if (!q.correctIndices || q.correctIndices.length === 0) {
-                alert(`Question ${i + 1} needs a correct answer selected.`);
-                return;
-            }
-        } else if (q.type === 'short_answer') {
-            const validAnswers = (q.acceptedAnswers || []).filter(a => a.trim());
-            if (validAnswers.length === 0) {
-                alert(`Question ${i + 1} needs at least one accepted answer.`);
-                return;
-            }
-        } else if (q.type === 'true_false') {
-            if (!q.correctIndices || q.correctIndices.length === 0) {
-                q.correctIndices = [0];
-            }
-            q.choices = ['True', 'False'];
-        }
-    }
-
-    const quizData = {
-        title: quizTitle.value.trim(),
-        description: quizDescription.value.trim(),
-        questions: questions.value.map(q => {
-            // Build a clean object per question type
-            const base = {
-                id: q.id,
-                type: q.type,
-                text: q.text,
-                explanation: q.explanation || '',
-            };
-
-            if (q.type === 'short_answer') {
-                return {
-                    ...base,
-                    acceptedAnswers: (q.acceptedAnswers || []).filter(a => a.trim()),
-                };
-            }
-
-            if (q.type === 'true_false') {
-                const first = q.correctIndices?.[0];
-                const correctIdx = typeof first === 'number' ? first : 0;
-                return {
-                    ...base,
-                    choices: ['True', 'False'],
-                    correctIndices: [correctIdx],
-                };
-            }
-
-            return {
-                ...base,
-                choices: (q.choices || []).filter(c => c.trim()),
-                correctIndices: [...(q.correctIndices || [])],
-            };
-        }),
-    };
-
-    emit('save', quizData);
+    const normalized = normalizeQuiz({
+        title: quizTitle.value,
+        description: quizDescription.value,
+        questions: questions.value,
+    });
+    const result = validateQuizJson(normalized);
+    validationErrors.value = result.errors;
+    if (!result.valid) return;
+    emit('save', normalized);
 }
 </script>
 
@@ -353,6 +288,18 @@ function handleSave() {
                 <AppIcon name="lucide:plus" class="h-4 w-4" />
                 Add Question
             </button>
+        </div>
+
+        <!-- Validation errors -->
+        <div v-if="validationErrors.length"
+            class="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-red-600/30 bg-red-600/5 p-3 text-sm text-red-600 dark:text-red-400">
+            <p class="flex items-center gap-2 font-medium">
+                <AppIcon name="lucide:info" class="h-4 w-4 shrink-0" />
+                Fix these issues:
+            </p>
+            <ul class="ml-6 list-disc space-y-1">
+                <li v-for="err in validationErrors" :key="err">{{ err }}</li>
+            </ul>
         </div>
 
         <!-- Footer actions -->

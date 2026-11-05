@@ -65,7 +65,7 @@ function handleCancel() {
                 <p class="text-muted-foreground">Make changes and save. All data stays on your device.</p>
             </div>
 
-            <p v-if="errorMessage" class="alert-error mb-6 flex items-center gap-2 px-4 py-3 text-sm">
+            <p v-if="errorMessage" class="alert-error mb-6 flex items-center gap-2 whitespace-pre-line px-4 py-3 text-sm">
                 <AppIcon name="lucide:info" class="h-4 w-4 shrink-0" />
                 {{ errorMessage }}
             </p>
