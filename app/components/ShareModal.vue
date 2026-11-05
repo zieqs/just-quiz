@@ -5,11 +5,7 @@ import type { Quiz } from '~/types/quiz';
 const props = defineProps<{ quiz: Quiz }>();
 const emit = defineEmits(['close']);
 
-const { isSignedIn, isBusy, signIn, saveQuizToDrive } = useGoogleDrive();
-
 const copied = ref(false);
-const saving = ref(false);
-const driveMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 
 const quizJson = computed(() => JSON.stringify(props.quiz, null, 2));
 
@@ -34,20 +30,6 @@ const copyJson = async () => {
   await navigator.clipboard.writeText(quizJson.value);
   copied.value = true;
   setTimeout(() => (copied.value = false), 2000);
-};
-
-const handleSaveToDrive = async () => {
-  driveMessage.value = null;
-  saving.value = true;
-  try {
-    if (!isSignedIn.value) await signIn();
-    await saveQuizToDrive(props.quiz);
-    driveMessage.value = { type: 'success', text: `"${props.quiz.title}" saved to Drive.` };
-  } catch (err: any) {
-    driveMessage.value = { type: 'error', text: err.message || 'Save failed.' };
-  } finally {
-    saving.value = false;
-  }
 };
 </script>
 
@@ -80,19 +62,6 @@ const handleSaveToDrive = async () => {
           {{ copied ? 'Copied!' : 'Copy JSON' }}
         </button>
       </div>
-
-      <button @click="handleSaveToDrive" :disabled="saving || isBusy"
-        class="btn-outline group w-full disabled:cursor-not-allowed disabled:opacity-40">
-        <AppIcon name="lucide:upload" class="h-4 w-4" :stroke-width="2.5" />
-        {{ saving || isBusy ? 'Saving...' : 'Save File to Drive' }}
-      </button>
-
-      <p v-if="driveMessage" class="border p-3 text-sm"
-        :class="driveMessage.type === 'success'
-          ? 'alert-success'
-          : 'alert-error'">
-        {{ driveMessage.text }}
-      </p>
 
       <div class="space-y-2">
         <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Preview</p>

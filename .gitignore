@@ -27,5 +27,11 @@ FUTURE_PLAN.md
 .env.*
 !.env.example
 
-# Google OAuth credentials (client secret — never commit)
-client_secret_*.json
+# Local SQLite database
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
+
+# Agent scratch workspace
+.superpowers/

@@ -1,146 +1,149 @@
-# JustQuiz
+# JustQuiz — Local SQLite Edition
 
-**Offline-first quiz practice app.** Paste AI-generated quizzes, play them right in your browser — no accounts, no servers, no setup.
+An offline-friendly quiz practice app for the browser, backed by a **local SQLite database** instead of cloud storage. Paste AI-generated quiz JSON, play it, and inspect every row in the database with any SQLite tool.
 
----
+This is a coursework fork of [4yami/just-quiz](https://github.com/4yami/just-quiz), with the original Google Drive backup feature replaced by a local Nuxt/Nitro API and a SQLite file.
 
-## What This Project Does
+> **Attribution:** the original application, UI, and quiz-playing logic belong to the upstream project. This fork changes the persistence layer for a Software Quality and Configuration Management assignment.
 
-JustQuiz turns study material into interactive quizzes you can practice anywhere. The core workflow is simple:
+## What changed from upstream
 
-1. **Generate** — Take your lecture notes, textbook chapters, or any study material and ask an AI chatbot (ChatGPT, Claude, etc.) to create a quiz using JustQuiz's JSON format. A ready-to-use AI prompt template is built into the app.
-2. **Import** — Paste the AI-generated JSON into the app. It validates every question (required fields, types, answer indices) before saving, so bad data never gets in.
-3. **Practice** — Play your quiz with immediate feedback, explanations for every answer, and a detailed score review at the end.
+| Upstream | This fork |
+|---|---|
+| Quizzes stored in IndexedDB via Dexie | Quizzes stored in `data/justquiz.db` (SQLite) |
+| Optional Google Drive OAuth backup | Removed entirely |
+| Static SPA deployable to GitHub Pages | Nuxt/Nitro server serving both the SPA and `/api` |
+| Browser-only data access | Inspectable SQL schema, migrations, and rows |
 
-Everything lives in the browser — quizzes are stored locally on your device (IndexedDB), so the app works fully offline. There is no backend, no user accounts, and no data tracking.
+The UI, quiz editor, import parser, scoring, resume behaviour, and PWA shell are preserved.
 
-> **Recruiter summary:** A full-stack-frontend web app demonstrating offline-first architecture, PWA installability, client-side data persistence, browser-based OAuth integration with an external API (Google Drive), and a polished Vue 3 + TypeScript UI.
+## Features
 
----
+- **AI-first import** — paste JSON, drop a `.json` file, or load the sample. Tolerant parser handles markdown fences, smart quotes, rich-text paste, stringified JSON, and JS-object output.
+- **Validation** — every quiz is checked on the client and again on the server before it is written.
+- **Four question types** — single choice, multiple choice, true/false, and short answer.
+- **Create, edit, delete, search, and sort** quizzes from the dashboard.
+- **Quiz player** — immediate feedback, explanations, progress, resume, and a final score review.
+- **Local database** — normalised tables the lecturer can open with DB Browser for SQLite.
+- **Installable PWA** — assets are still installable, but quiz data requires the local server.
+- **Dark / light theme** with system preference detection.
 
-## Key Features
-
-### 🧠 AI-First Quiz Import
-- Structured JSON schema (`title`, `description`, `questions[]`) documented in-app with a copyable sample and AI prompt.
-- Any AI chatbot can generate valid quizzes; imported JSON is validated question-by-question with clear error messages.
-- Supports **4 question types**: single choice, multiple choice, true/false, and short answer (with multiple accepted answers).
-
-### 📡 Fully Offline & Private
-- SPA architecture (`ssr: false`) — no server required, static output deploys anywhere.
-- Quizzes persist in the browser via **IndexedDB (Dexie)**.
-- Works on a plane, on a train, with no internet at all.
-
-### 📱 Installable PWA
-- Built with Vite PWA — installable on desktop and mobile.
-- Icons bundled at build time so the app works completely offline after install.
-- iOS meta tags for "Add to Home Screen" support on iPhone/iPad.
-
-### ☁️ Optional Google Drive Backup
-- Sign in with Google (OAuth 2.0 via Google Identity Services) to back up or restore all quizzes.
-- Uses the `drive.file` scope — the app can only access files **it** created, stored in a dedicated `JustQuiz` folder.
-- "Save Files" / "Load Files" actions on the dashboard with merge logic (new quizzes created, matching titles updated in place).
-
-### ✍️ Built-In Quiz Editor
-- Create quizzes from scratch with a step-by-step visual editor.
-- Edit existing quizzes, or delete them with confirmation.
-
-### 🎨 Polished UX
-- Quiz player with answer checking, explanations, and a final score review.
-- Dashboard with search, sort filters, and an empty state.
-- Share quizzes via short link.
-- Dark / light mode with system preference detection.
-- Custom design system: gradient accents, glassy cards, animated hero, custom fonts (Tailwind CSS).
-
----
-
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
-| --- | --- |
-| Framework | **Nuxt 4** (Vue 3, Composition API) |
-| Language | **TypeScript** |
-| Styling | **Tailwind CSS 3** + custom design tokens |
-| Local storage | **Dexie** (IndexedDB wrapper) |
-| Google integration | **Google Identity Services** (browser OAuth) + Drive REST API |
-| PWA | **@vite-pwa/nuxt** (offline support, installability) |
-| Icons | **@nuxt/icon** with lucide icons (bundled at build time) |
-| Package manager | **pnpm** |
+|---|---|
+| Framework | Nuxt 4.5 (Vue 3, TypeScript) |
+| Server | Nitro (Nuxt server routes) |
+| Database | SQLite via Node's built-in `node:sqlite` (Node >= 24) |
+| Styling | Tailwind CSS 3 |
+| PWA | `@vite-pwa/nuxt` |
+| Tests | Vitest |
 
----
-
-## Project Structure
+## Architecture
 
 ```
-├── app/
-│   ├── components/          # UI building blocks
-│   │   ├── QuizPlayer.vue   #   quiz-taking experience w/ feedback & scoring
-│   │   ├── QuizEditor.vue   #   step-by-step quiz builder
-│   │   ├── ImportModal.vue  #   paste/upload JSON → validate → save
-│   │   ├── ShareModal.vue   #   share quiz via short link
-│   │   └── ...              #   AppHeader/Footer, ConfirmDialog, PWA install, etc.
-│   ├── composables/         # Reusable logic
-│   │   ├── useQuizDb.ts     #   IndexedDB CRUD for quizzes
-│   │   ├── useGoogleDrive.ts#   OAuth sign-in + Drive save/load/merge
-│   │   ├── usePwaInstall.ts #   PWA install prompt handling
-│   │   └── useColorMode.ts  #   dark/light theme with system detection
-│   ├── pages/               # Routes
-│   │   ├── index.vue        #   dashboard (search, sort, CRUD, Drive actions)
-│   │   ├── about.vue        #   landing page w/ features & how-it-works
-│   │   ├── format.vue       #   JSON schema docs + copyable AI prompt
-│   │   ├── setup.vue        #   Google Drive connection management
-│   │   └── quiz/            #   player ([slug]), create (new), edit
-│   ├── types/quiz.ts        # Quiz & Question TypeScript models
-│   └── utils/               # db, validation, JSON parsing, slugs, sample data
-├── public/                  # PWA icons, favicon, robots.txt
-├── scripts/                 # PWA icon generation
-└── nuxt.config.ts           # SPA mode, PWA manifest, runtime config, fonts
+┌──────────────────────────────┐
+│  Vue 3 SPA (ssr: false)      │
+│  pages / components          │
+└──────────────┬───────────────┘
+               │ $fetch
+┌──────────────▼───────────────┐
+│  Nitro API  /api/quizzes     │
+│  validation + service layer  │
+└──────────────┬───────────────┘
+               │ node:sqlite
+┌──────────────▼───────────────┐
+│  data/justquiz.db            │
+│  quizzes · questions         │
+│  choices · accepted_answers  │
+└──────────────────────────────┘
 ```
 
----
+## Getting started
 
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- pnpm (recommended)
-
-### Install dependencies
+Prerequisites: **Node.js >= 24** and **pnpm 11**.
 
 ```bash
-# pnpm (recommended)
 pnpm install
-
-# or
-npm install
+pnpm db:reset     # create the database and insert the sample quiz
+pnpm dev          # http://localhost:3000
 ```
 
-### Development server
-
-Start the dev server at `http://localhost:3000`:
+For a production-style run:
 
 ```bash
-pnpm dev
+pnpm build
+pnpm preview      # node .output/server/index.mjs
 ```
 
-### Production build
+## Inspecting the database
+
+The database lives at `data/justquiz.db` by default. Override it with `JUSTQUIZ_DB_PATH`.
+
+1. Run `pnpm db:reset` (creates and seeds the file).
+2. Open `data/justquiz.db` in [DB Browser for SQLite](https://sqlitebrowser.org/).
+3. Inspect the tables `quizzes`, `questions`, `choices`, `accepted_answers`, and the view `quiz_overview`.
+
+Quick command-line check:
 
 ```bash
-pnpm build     # static SPA output (nuxt build, ssr: false)
-pnpm preview   # locally preview the production build
+sqlite3 data/justquiz.db "SELECT * FROM quiz_overview;"
 ```
 
----
+See [docs/database.md](docs/database.md) for the schema and mapping rules.
 
-## Deployment
+## API
 
-The app is configured for **static hosting** (e.g. GitHub Pages, Netlify, Vercel) — no Node server required.
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/quizzes` | list all quizzes |
+| POST | `/api/quizzes` | create a quiz |
+| GET | `/api/quizzes/:id` | read one quiz |
+| PUT | `/api/quizzes/:id` | replace a quiz |
+| DELETE | `/api/quizzes/:id` | delete a quiz |
+| GET | `/api/quizzes/short/:prefix` | resolve a short ID |
 
-- **Base path:** When serving from a sub-path (like `https://user.github.io/just-quiz/`), set `NUXT_APP_BASE_URL=/${{ github.event.repository.name }}/` at build time (see `nuxt.config.ts`).
-- **Google Drive sync:** Set `NUXT_PUBLIC_GOOGLE_DRIVE_CLIENT_ID` to your Google OAuth client ID to enable the backup/sync feature. Drive sync gracefully degrades if unset.
-- **PWA icons:** Regenerate after changing branding with `pnpm icons`.
+Validation failures return `400` with `{ "errors": ["..."] }`. See [docs/api.md](docs/api.md).
 
----
+## Scripts
 
-## License
+| Script | Purpose |
+|---|---|
+| `pnpm dev` | development server (UI + API) |
+| `pnpm build` | build the Nitro server and client |
+| `pnpm preview` | run the built server |
+| `pnpm typecheck` | Vue + TypeScript checks |
+| `pnpm test` | Vitest suite |
+| `pnpm db:migrate` | apply pending SQL migrations |
+| `pnpm db:seed` | insert the sample quiz (idempotent) |
+| `pnpm db:reset` | delete, migrate, and seed the database |
 
-Private project.
+## Project structure
+
+```
+app/                 Vue SPA (pages, components, composables)
+server/api/          Nitro route handlers
+server/utils/        database, migrations, repository, service
+shared/              types, normalisation, validation used by app + server
+db/migrations/       SQL schema migrations
+db/seed.sql          sample quiz
+scripts/             migrate / seed / reset scripts
+docs/                requirements, database, and API documentation
+tests/               Vitest suites
+data/justquiz.db     local database (git-ignored)
+```
+
+## Requirements
+
+Functional requirements are catalogued in [docs/requirements.md](docs/requirements.md) (FR-01 … FR-50), grouped by onboarding, import, authoring, playback, resume, export, persistence, and PWA behaviour.
+
+## Limitations
+
+- Single-user and local-only: there is no authentication or cloud sync.
+- Quiz data is not available offline; the local server must be running. The PWA shell can still be installed.
+- The GitHub Pages deployment workflow was removed because a SQLite backend cannot run there.
+- The `/quiz/<title>-<shortId>` URL only resolves against the local database.
+
+## License and coursework
+
+The upstream repository describes itself as a private project. This fork is submitted for coursework with attribution. Do not redistribute the upstream code beyond the assignment without the original author's permission.

@@ -7,20 +7,27 @@ const { getQuizByShortId } = useQuizDb();
 
 const quiz = ref<Quiz | null>(null);
 const isLoading = ref(true);
+const loadError = ref<string | null>(null);
 
 onMounted(async () => {
   const slugParam = route.params.slug as string;
   const shortId = extractShortId(slugParam);
   const { clearSessionBySlug } = useQuizSession();
 
-  const foundQuiz = await getQuizByShortId(shortId);
-  if (foundQuiz) {
-    quiz.value = foundQuiz;
-  } else {
-    // The quiz no longer exists — drop any stale session pointing at this URL.
-    clearSessionBySlug(slugParam);
+  try {
+    const foundQuiz = await getQuizByShortId(shortId);
+    if (foundQuiz) {
+      quiz.value = foundQuiz;
+    } else {
+      // The quiz no longer exists — drop any stale session pointing at this URL.
+      clearSessionBySlug(slugParam);
+    }
+  } catch (err: any) {
+    loadError.value =
+      err?.message || "Could not load this quiz. Is the local server running?";
+  } finally {
+    isLoading.value = false;
   }
-  isLoading.value = false;
 });
 </script>
 
@@ -36,7 +43,9 @@ onMounted(async () => {
         <AppIcon name="lucide:info" class="h-8 w-8 text-red-500 dark:text-red-400" />
       </div>
       <h2 class="font-display text-3xl text-foreground">Quiz Not Found</h2>
-      <p class="mt-2 text-muted-foreground">This quiz might have been deleted from your browser.</p>
+      <p class="mt-2 text-muted-foreground">
+        {{ loadError || 'This quiz might have been deleted from the local database.' }}
+      </p>
       <NuxtLink to="/" class="btn-primary mt-8">Back to Dashboard</NuxtLink>
     </div>
 

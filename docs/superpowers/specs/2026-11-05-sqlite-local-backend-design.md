@@ -1,7 +1,7 @@
 # JustQuiz — Local SQLite Backend Design
 
 **Date:** 2026-11-05
-**Status:** Draft for approval
+**Status:** Approved and implemented
 **Author:** Student fork maintainer
 **Upstream:** https://github.com/4yami/just-quiz (friend's repo, same assignment group)
 

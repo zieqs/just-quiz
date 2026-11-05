@@ -1,6 +1,7 @@
 <!-- app/components/ImportModal.vue -->
 <script setup lang="ts">
 import { parseQuizJson } from '~/utils/parseQuizJson';
+import { normalizeQuiz, validateQuizJson } from '~~/shared/quiz';
 
 const emit = defineEmits(['close', 'quiz-added']);
 const { saveImportedQuiz } = useQuizDb();
@@ -74,7 +75,8 @@ const handleImport = async () => {
     return;
   }
 
-  const validation = validateQuizJson(result.data);
+  const normalized = normalizeQuiz(result.data);
+  const validation = validateQuizJson(normalized);
 
   if (!validation.valid) {
     validationErrors.value =
@@ -82,9 +84,13 @@ const handleImport = async () => {
     return;
   }
 
-  const newId = await saveImportedQuiz(result.data);
-  emit('quiz-added', newId);
-  emit('close');
+  try {
+    const newId = await saveImportedQuiz(normalized);
+    emit('quiz-added', newId);
+    emit('close');
+  } catch (err: any) {
+    errorMessage.value = err?.message || 'Failed to save the quiz. Is the local server running?';
+  }
 };
 </script>
 

@@ -1,5 +1,10 @@
 import type { Quiz } from '~/types/quiz';
 
+export const getQuizShortId = (quiz: Quiz): string => {
+  // UUIDs and seeded ids both expose their first segment as the lookup prefix.
+  return quiz.id ? (quiz.id.split("-")[0] ?? quiz.id) : "";
+};
+
 export const getQuizUrl = (quiz: Quiz): string => {
   const slug = (quiz.title || 'quiz')
     .toLowerCase()
@@ -8,9 +13,7 @@ export const getQuizUrl = (quiz: Quiz): string => {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'quiz';
 
-  // Safeguard against undefined if quiz.id is empty or split yields empty array
-  const shortId = quiz.id ? (quiz.id.split('-')[0] ?? '') : '';
-  return `/quiz/${slug}-${shortId}`;
+  return `/quiz/${slug}-${getQuizShortId(quiz)}`;
 };
 
 export const extractShortId = (slugParam: string): string => {
