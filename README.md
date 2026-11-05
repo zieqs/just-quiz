@@ -90,7 +90,7 @@ Quick command-line check:
 sqlite3 data/justquiz.db "SELECT * FROM quiz_overview;"
 ```
 
-See [docs/database.md](docs/database.md) for the schema and mapping rules.
+See [docs/database.md](docs/database.md) for the schema and mapping rules. A standalone diagram is available at [docs/database-diagram.md](docs/database-diagram.md), with a rendered copy at `docs/database-diagram.png`.
 
 ## API
 

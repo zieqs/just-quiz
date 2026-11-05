@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JustQuiz — Database Design</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --accent: #4f46e5;
+        --border: #e2e8f0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 48px 56px 56px;
+        background: #ffffff;
+        color: var(--ink);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        width: 1440px;
+      }
+      header { margin-bottom: 28px; }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      h1 { font-size: 34px; line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.02em; }
+      p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 980px; }
+      .frame {
+        margin-top: 28px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 28px;
+        background: #fbfcff;
+      }
+      .mermaid { display: flex; justify-content: center; }
+      footer {
+        margin-top: 22px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 28px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      footer strong { color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="eyebrow">JustQuiz · Local SQLite Edition</p>
+      <h1>Database Design</h1>
+      <p>
+        Normalised schema stored in <code>data/justquiz.db</code>. Foreign keys are enforced and
+        cascade on delete. Reviewers can inspect every table and the <code>quiz_overview</code> view
+        in DB Browser for SQLite.
+      </p>
+    </header>
+
+    <div class="frame">
+      <pre class="mermaid">
+erDiagram
+    QUIZZES ||--o{ QUESTIONS : "contains"
+    QUESTIONS ||--o{ CHOICES : "has options"
+    QUESTIONS ||--o{ ACCEPTED_ANSWERS : "accepts"
+
+    QUIZZES {
+        TEXT id PK "UUID v4"
+        TEXT title "NOT NULL"
+        TEXT description "default ''"
+        INTEGER created_at "epoch ms"
+        INTEGER updated_at "epoch ms"
+    }
+
+    QUESTIONS {
+        TEXT id PK "UUID v4"
+        TEXT quiz_id FK "references quizzes.id"
+        TEXT type "single | multiple | true_false | short_answer"
+        TEXT text "question wording"
+        TEXT explanation "optional feedback"
+        INTEGER position "order inside quiz"
+    }
+
+    CHOICES {
+        INTEGER id PK "autoincrement"
+        TEXT question_id FK "references questions.id"
+        TEXT text "option wording"
+        INTEGER position "order inside question"
+        INTEGER is_correct "1 = correct, 0 = wrong"
+    }
+
+    ACCEPTED_ANSWERS {
+        INTEGER id PK "autoincrement"
+        TEXT question_id FK "references questions.id"
+        TEXT text "accepted spelling"
+        INTEGER position "order inside question"
+    }
+
+    SCHEMA_MIGRATIONS {
+        TEXT version PK "migration filename"
+        INTEGER applied_at "epoch ms"
+    }
+      </pre>
+    </div>
+
+    <footer>
+      <span><strong>Questions</strong> · 4 types</span>
+      <span><strong>Choices</strong> · choice-based questions</span>
+      <span><strong>Accepted answers</strong> · short answer</span>
+      <span><strong>Cascade</strong> · quiz → questions → children</span>
+    </footer>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        themeVariables: {
+          fontFamily: "Inter, sans-serif",
+          primaryColor: "#eef2ff",
+          primaryBorderColor: "#4f46e5",
+          primaryTextColor: "#0f172a",
+          lineColor: "#64748b",
+          tertiaryColor: "#f8fafc",
+        },
+        er: { diagramPadding: 16, layoutDirection: "TB" },
+      });
+      await mermaid.run({ querySelector: ".mermaid" });
+      document.body.dataset.rendered = "true";
+    </script>
+  </body>
+</html>
