@@ -10,11 +10,8 @@ export default defineEventHandler(async (event) => {
   const result = getQuizService().update(id, body);
 
   if (!result.ok) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Invalid quiz",
-      data: { errors: result.errors },
-    });
+    setResponseStatus(event, 400);
+    return { errors: result.errors };
   }
 
   if (!result.value) {

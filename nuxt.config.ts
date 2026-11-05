@@ -93,7 +93,7 @@ export default defineNuxtConfig({
     manifest: {
       name: 'JustQuiz',
       short_name: 'JustQuiz',
-      description: 'Offline-first quiz practice. No account needed.',
+      description: 'Local quiz practice backed by a SQLite database.',
       theme_color: '#0F172A',
       background_color: '#FAFAFA',
       display: 'standalone',

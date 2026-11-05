@@ -116,10 +116,12 @@ export const createQuizRepository = (db: DatabaseSync): QuizRepository => {
       );
 
       (question.choices ?? []).forEach((choice, choicePosition) => {
+        if (question.type === "short_answer") return;
         insertChoice.run(questionId, choice, choicePosition, correctIndices.has(choicePosition) ? 1 : 0);
       });
 
       (question.acceptedAnswers ?? []).forEach((answer, answerPosition) => {
+        if (question.type !== "short_answer") return;
         insertAnswer.run(questionId, answer, answerPosition);
       });
     });
@@ -168,9 +170,10 @@ export const createQuizRepository = (db: DatabaseSync): QuizRepository => {
 
   const getByShortPrefix = (prefix: string): Quiz | null => {
     const rows = db
-      .prepare("SELECT id FROM quizzes WHERE id LIKE ? ORDER BY created_at DESC LIMIT 2")
-      .all(`${prefix}%`) as Array<{ id: string }>;
-    return rows.length > 0 ? get(rows[0]!.id) : null;
+      .prepare("SELECT id FROM quizzes WHERE substr(id, 1, ?) = ? ORDER BY created_at DESC LIMIT 2")
+      .all(prefix.length, prefix) as Array<{ id: string }>;
+    // Ambiguous prefixes must not silently resolve to the wrong quiz.
+    return rows.length === 1 ? get(rows[0]!.id) : null;
   };
 
   return { list, get, getByShortPrefix, create, update, remove };

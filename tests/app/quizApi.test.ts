@@ -80,4 +80,15 @@ describe("quizApi", () => {
       "Question 1: bad"
     );
   });
+
+  it("also unwraps Nitro's nested error envelope", async () => {
+    const fetcher: QuizFetcher = async () => {
+      throw { data: { data: { errors: ["Nested error"] } } };
+    };
+    const api = createQuizApi(fetcher);
+
+    await expect(api.create({ title: "T", description: "", questions: [] })).rejects.toThrow(
+      "Nested error"
+    );
+  });
 });

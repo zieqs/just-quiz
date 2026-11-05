@@ -9,16 +9,21 @@ const { getQuizByShortId, updateQuiz } = useQuizDb();
 const quiz = ref<Quiz | null>(null);
 const isLoading = ref(true);
 const errorMessage = ref('');
+const loadError = ref<string | null>(null);
 
 onMounted(async () => {
     const slugParam = route.params.slug as string;
     const shortId = extractShortId(slugParam);
 
-    const foundQuiz = await getQuizByShortId(shortId);
-    if (foundQuiz) {
-        quiz.value = foundQuiz;
+    try {
+        const foundQuiz = await getQuizByShortId(shortId);
+        if (foundQuiz) quiz.value = foundQuiz;
+    } catch (err: any) {
+        loadError.value =
+            err?.message || "Could not load this quiz. Is the local server running?";
+    } finally {
+        isLoading.value = false;
     }
-    isLoading.value = false;
 });
 
 async function handleSave(quizData: any) {
@@ -53,7 +58,9 @@ function handleCancel() {
 
         <div v-else-if="!quiz" class="py-16 text-center">
             <h2 class="font-display text-3xl text-foreground">Quiz Not Found</h2>
-            <p class="mt-2 text-muted-foreground">This quiz might have been deleted from your browser.</p>
+            <p class="mt-2 text-muted-foreground">
+                {{ loadError || 'This quiz might have been deleted from the local database.' }}
+            </p>
             <NuxtLink to="/" class="btn-primary mt-8">Back to Dashboard</NuxtLink>
         </div>
 

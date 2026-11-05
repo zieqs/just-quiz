@@ -43,19 +43,28 @@ export const VALID_QUESTION_TYPES: QuestionType[] = [
 ];
 
 const asStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.map((item) => String(item)) : [];
+  Array.isArray(value) ? (value as string[]) : [];
 
 const asNumberArray = (value: unknown): number[] => {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is number => typeof item === "number");
-  }
+  if (Array.isArray(value)) return value as number[];
   return typeof value === "number" ? [value] : [];
 };
+
+const invalidQuestion = (): Question => ({
+  id: generateId(),
+  type: "single",
+  text: "",
+  explanation: "",
+  choices: [],
+  correctIndices: [],
+  acceptedAnswers: [],
+});
 
 /**
  * Normalise raw JSON or editor output into the shape the database expects.
  * This runs before validation, so documented defaults (true/false choices,
- * scalar answer fields) are applied first.
+ * scalar answer fields) are applied first. Malformed members are preserved
+ * (not dropped or coerced) so validation can report them.
  */
 export const normalizeQuiz = (raw: unknown): QuizInput => {
   const data = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
@@ -64,40 +73,45 @@ export const normalizeQuiz = (raw: unknown): QuizInput => {
   const description = typeof data.description === "string" ? data.description : "";
   const rawQuestions = Array.isArray(data.questions) ? data.questions : [];
 
-  const questions: Question[] = rawQuestions
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
-    .map((item) => {
-      const type = (typeof item.type === "string" && item.type ? item.type : "single") as QuestionType;
+  const questions: Question[] = rawQuestions.map((item) => {
+    if (!item || typeof item !== "object") return invalidQuestion();
 
-      const choices =
-        type === "true_false"
-          ? Array.isArray(item.choices) && item.choices.length >= 2
-            ? asStringArray(item.choices)
-            : ["True", "False"]
-          : asStringArray(item.choices);
+    const record = item as Record<string, unknown>;
+    const type = (typeof record.type === "string" && record.type
+      ? record.type
+      : "single") as QuestionType;
 
-      const correctIndices = Array.isArray(item.correctIndices)
-        ? asNumberArray(item.correctIndices)
-        : typeof item.correctIndex === "number"
-          ? [item.correctIndex]
-          : [];
+    const choices = Array.isArray(record.choices)
+      ? asStringArray(record.choices)
+      : type === "true_false"
+        ? ["True", "False"]
+        : [];
 
-      const acceptedAnswers = Array.isArray(item.acceptedAnswers)
-        ? asStringArray(item.acceptedAnswers)
-        : typeof item.acceptedAnswer === "string"
-          ? [item.acceptedAnswer]
-          : [];
+    const correctIndices = Array.isArray(record.correctIndices)
+      ? asNumberArray(record.correctIndices)
+      : typeof record.correctIndex === "number"
+        ? [record.correctIndex]
+        : [];
 
-      return {
-        id: typeof item.id === "string" && item.id ? item.id : generateId(),
-        type,
-        text: typeof item.text === "string" ? item.text : "",
-        explanation: typeof item.explanation === "string" ? item.explanation : "",
-        choices,
-        correctIndices,
-        acceptedAnswers,
-      };
-    });
+    const acceptedAnswers = Array.isArray(record.acceptedAnswers)
+      ? asStringArray(record.acceptedAnswers)
+      : typeof record.acceptedAnswer === "string"
+        ? [record.acceptedAnswer]
+        : [];
+
+    // Keep only the collections that belong to this question type.
+    const isTextAnswer = type === "short_answer";
+
+    return {
+      id: typeof record.id === "string" && record.id ? record.id : generateId(),
+      type,
+      text: typeof record.text === "string" ? record.text : "",
+      explanation: typeof record.explanation === "string" ? record.explanation : "",
+      choices: isTextAnswer ? [] : choices,
+      correctIndices: isTextAnswer ? [] : correctIndices,
+      acceptedAnswers: isTextAnswer ? acceptedAnswers : [],
+    };
+  });
 
   return { title, description, questions };
 };
@@ -169,10 +183,15 @@ export const validateQuizJson = (data: unknown): ValidationResult => {
     const correct = Array.isArray(question.correctIndices) ? question.correctIndices : [];
     if (correct.length === 0) {
       errors.push(`${label}: missing correct answer (correctIndices).`);
+    } else if ((type === "single" || type === "true_false") && correct.length !== 1) {
+      errors.push(`${label}: ${type} needs exactly one correct answer.`);
     } else if (
       correct.some(
         (choiceIndex) =>
-          typeof choiceIndex !== "number" || choiceIndex < 0 || choiceIndex >= choices.length
+          typeof choiceIndex !== "number" ||
+          !Number.isInteger(choiceIndex) ||
+          choiceIndex < 0 ||
+          choiceIndex >= choices.length
       )
     ) {
       errors.push(`${label}: correctIndices out of range.`);

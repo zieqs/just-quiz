@@ -77,4 +77,69 @@ describe("validateQuizJson", () => {
     expect(
       validateQuizJson(normalizeQuiz({ title: "T", questions: [{ type: "short_answer", text: "Q" }] })).valid
     ).toBe(false));
+
+  it("rejects a non-object question entry instead of dropping it", () =>
+    expect(
+      validateQuizJson(normalizeQuiz({ title: "T", questions: [null, { type: "single", text: "Q", choices: ["A", "B"], correctIndices: [0] }] })).valid
+    ).toBe(false));
+
+  it("rejects a non-string choice instead of coercing it", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({ title: "T", questions: [{ type: "single", text: "Q", choices: [1, "B"], correctIndices: [0] }] })
+      ).errors.join()
+    ).toMatch(/choice/i));
+
+  it("rejects a non-number correct index", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({ title: "T", questions: [{ type: "single", text: "Q", choices: ["A", "B"], correctIndices: ["0"] }] })
+      ).valid
+    ).toBe(false));
+
+  it("rejects a fractional correct index", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({ title: "T", questions: [{ type: "single", text: "Q", choices: ["A", "B"], correctIndices: [0.5] }] })
+      ).valid
+    ).toBe(false));
+
+  it("rejects multiple correct answers for single choice", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({ title: "T", questions: [{ type: "single", text: "Q", choices: ["A", "B"], correctIndices: [0, 1] }] })
+      ).valid
+    ).toBe(false));
+
+  it("rejects multiple correct answers for true/false", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({ title: "T", questions: [{ type: "true_false", text: "Q", correctIndices: [0, 1] }] })
+      ).valid
+    ).toBe(false));
+
+  it("strips choice fields from short_answer during normalisation", () => {
+    const quiz = normalizeQuiz({
+      title: "T",
+      questions: [
+        { type: "short_answer", text: "Q", choices: ["A", "B"], correctIndices: [0], acceptedAnswers: ["x"] },
+      ],
+    });
+    expect(quiz.questions[0]!.choices).toEqual([]);
+    expect(quiz.questions[0]!.correctIndices).toEqual([]);
+    expect(validateQuizJson(quiz).valid).toBe(true);
+  });
+
+  it("validates scalar aliases after normalisation", () =>
+    expect(
+      validateQuizJson(
+        normalizeQuiz({
+          title: "T",
+          questions: [
+            { type: "single", text: "Q", choices: ["A", "B"], correctIndex: 1 },
+            { type: "short_answer", text: "S", acceptedAnswer: "x" },
+          ],
+        })
+      ).valid
+    ).toBe(true));
 });

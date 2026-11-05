@@ -6,6 +6,7 @@ const { getAllQuizzes, deleteQuiz } = useQuizDb();
 const { isFirstVisit, checkFirstVisit } = useFirstVisit();
 
 const quizzes = ref<Quiz[]>([]);
+const loadError = ref<string | null>(null);
 const isImportOpen = ref(false);
 const isCreateMenuOpen = ref(false);
 
@@ -58,7 +59,13 @@ const filteredQuizzes = computed(() => {
 });
 
 const loadQuizzes = async () => {
-  quizzes.value = await getAllQuizzes();
+  try {
+    loadError.value = null;
+    quizzes.value = await getAllQuizzes();
+  } catch (err: any) {
+    loadError.value =
+      err?.message || "Could not load quizzes. Is the local server running?";
+  }
 };
 
 const confirmDelete = (quiz: Quiz) => {
@@ -67,9 +74,13 @@ const confirmDelete = (quiz: Quiz) => {
 
 const handleConfirmDelete = async () => {
   if (!quizToDelete.value) return;
-  await deleteQuiz(quizToDelete.value.id);
-  await loadQuizzes();
-  quizToDelete.value = null;
+  try {
+    await deleteQuiz(quizToDelete.value.id);
+    await loadQuizzes();
+    quizToDelete.value = null;
+  } catch (err: any) {
+    loadError.value = err?.message || "Could not delete the quiz.";
+  }
 };
 
 const cancelDelete = () => {
@@ -169,6 +180,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- Load error -->
+    <p v-if="loadError" class="alert-error mb-6 inline-flex items-start gap-2 px-3 py-2.5 text-sm">
+      <AppIcon name="lucide:info" class="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{{ loadError }}</span>
+    </p>
+
     <!-- Search & Sort Toolbar -->
     <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div class="relative flex-1">
@@ -198,14 +215,14 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-if="quizzes.length === 0"
+    <div v-if="!loadError && quizzes.length === 0"
       class="flex flex-col items-center rounded-2xl border-2 border-dashed border-border bg-card px-6 py-20 text-center">
       <div class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10">
         <AppIcon name="lucide:check-check" class="h-8 w-8 text-accent" />
       </div>
       <h3 class="font-display text-2xl text-foreground">No quizzes yet</h3>
       <p class="mt-2 max-w-sm text-muted-foreground">
-        Paste an AI-generated JSON quiz to start practicing offline. Takes less than a minute.
+        Paste an AI-generated JSON quiz to start practicing. Takes less than a minute.
       </p>
       <button @click="isImportOpen = true" class="btn-primary mt-8">
         Import your first quiz
@@ -239,7 +256,7 @@ onBeforeUnmount(() => {
             aria-label="Share quiz">
             <AppIcon name="lucide:share-2" class="h-4 w-4" />
           </button>
-          <NuxtLink :to="`/quiz/edit/${quiz.id.slice(0, 8)}`"
+          <NuxtLink :to="`/quiz/edit/${getQuizShortId(quiz)}`"
             class="inline-flex items-center rounded-lg border border-border bg-card p-2.5 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-[0.98]"
             aria-label="Edit quiz">
             <AppIcon name="lucide:edit-3" class="h-4 w-4" />
@@ -254,7 +271,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- No Results -->
-    <div v-else
+    <div v-else-if="!loadError"
       class="flex flex-col items-center rounded-2xl border-2 border-dashed border-border bg-card px-6 py-16 text-center">
       <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
         <AppIcon name="lucide:search-x" class="h-7 w-7 text-accent" />

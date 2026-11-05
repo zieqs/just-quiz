@@ -16,7 +16,8 @@ export interface QuizApi {
 }
 
 const toQuizError = (error: unknown): never => {
-  const errors = (error as any)?.data?.errors;
+  const errors =
+    (error as any)?.data?.errors ?? (error as any)?.data?.data?.errors;
   if (Array.isArray(errors) && errors.length > 0) {
     throw new Error(errors.join("\n"));
   }

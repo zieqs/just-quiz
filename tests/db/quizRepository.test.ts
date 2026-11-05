@@ -107,4 +107,69 @@ describe("quizRepository", () => {
     expect(repo.getByShortPrefix(created.id.slice(0, 8))?.id).toBe(created.id);
     expect(repo.getByShortPrefix("nonexistent")).toBeNull();
   });
+
+  it("returns null for an ambiguous prefix instead of picking one", () => {
+    const first = repo.create({ title: "A", description: "", questions: [] });
+    const second = repo.create({ title: "B", description: "", questions: [] });
+
+    db.prepare("UPDATE quizzes SET id = ? WHERE id = ?").run(
+      "abcdef12-1111-4000-8000-000000000001",
+      first.id
+    );
+    db.prepare("UPDATE quizzes SET id = ? WHERE id = ?").run(
+      "abcdef12-2222-4000-8000-000000000002",
+      second.id
+    );
+
+    expect(repo.getByShortPrefix("abcdef12")).toBeNull();
+    expect(repo.getByShortPrefix("abcdef12-1111")?.id).toBe(
+      "abcdef12-1111-4000-8000-000000000001"
+    );
+  });
+
+  it("treats LIKE wildcards in a prefix literally", () => {
+    repo.create(input());
+    expect(repo.getByShortPrefix("%")).toBeNull();
+    expect(repo.getByShortPrefix("_")).toBeNull();
+  });
+
+  it("stores only the child collection that matches the question type", () => {
+    const created = repo.create({
+      title: "Mixed",
+      description: "",
+      questions: [
+        {
+          id: "s1",
+          type: "short_answer",
+          text: "S",
+          choices: ["A", "B"],
+          correctIndices: [0],
+          acceptedAnswers: ["x"],
+        },
+        {
+          id: "c1",
+          type: "single",
+          text: "C",
+          choices: ["A", "B"],
+          correctIndices: [1],
+          acceptedAnswers: ["y"],
+        },
+      ],
+    });
+
+    const loaded = repo.get(created.id)!;
+    expect(loaded.questions[0]!.choices).toEqual([]);
+    expect(loaded.questions[0]!.correctIndices).toEqual([]);
+    expect(loaded.questions[0]!.acceptedAnswers).toEqual(["x"]);
+    expect(loaded.questions[1]!.acceptedAnswers).toEqual([]);
+
+    const shortChoices: any = db
+      .prepare("SELECT COUNT(*) AS n FROM choices WHERE question_id = 's1'")
+      .get();
+    const choiceAnswers: any = db
+      .prepare("SELECT COUNT(*) AS n FROM accepted_answers WHERE question_id = 'c1'")
+      .get();
+    expect(shortChoices.n).toBe(0);
+    expect(choiceAnswers.n).toBe(0);
+  });
 });

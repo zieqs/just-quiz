@@ -289,13 +289,15 @@ export const validateQuizJson = (data: unknown): ValidationResult => { /* port c
 
 Normalisation rules:
 - `title`: trimmed string or `""`; `description`: string or `""`.
-- `questions`: only array items that are objects; each gets `id` (existing string or `generateId()`), `text` (string or `""`), `explanation` (string or `""`).
+- `questions`: preserve every array entry; a non-object entry becomes an empty placeholder so validation rejects it instead of silently dropping it. Each gets `id` (existing string or `generateId()`), `text` (string or `""`), `explanation` (string or `""`).
+- Canonicalise by type: `short_answer` keeps only `acceptedAnswers`; all other types keep only `choices` and `correctIndices`.
+- Do not coerce or filter array members: a numeric choice stays numeric and a non-number index stays as supplied, so validation can report it.
 - `type`: keep a string as supplied; default `"single"` when missing.
 - `choices`: clone arrays; for `true_false` with no array use `["True","False"]`; otherwise `[]`.
 - `correctIndices`: clone number arrays; a single number becomes `[n]`; otherwise `[]`.
 - `acceptedAnswers`: clone string arrays; a single string becomes `[s]`; otherwise `[]`.
 
-Validation ports the current `app/utils/quizValidation.ts` rules, including the `/unknown type/i`, `/title/i`, choice-count, range, and accepted-answer messages. Add two rules: every choice must be a non-empty string after trimming (error message must contain "choice"), and every accepted answer must be non-empty after trimming.
+Validation ports the current `app/utils/quizValidation.ts` rules, including the `/unknown type/i`, `/title/i`, choice-count, range, and accepted-answer messages. Add rules: every choice must be a non-empty string after trimming (error message must contain "choice"); every accepted answer must be non-empty after trimming; indices must be integers; `single` and `true_false` must have exactly one correct index.
 
 - [ ] **Step 5: Re-export from the old locations**
 
@@ -536,7 +538,7 @@ Expected: FAIL — module does not exist.
 - `update`: return `null` when the quiz is missing; transaction; update title/description/`updated_at`; delete then reinsert all questions/choices/answers; preserve `created_at`; return `get(id)`.
 - `remove`: run `DELETE FROM quizzes WHERE id = ?`; return `changes > 0`.
 - `list`: `SELECT ... FROM quizzes ORDER BY created_at DESC`, map each via `get` (dataset is small).
-- `getByShortPrefix`: `WHERE id LIKE ? ORDER BY created_at DESC LIMIT 2`, using `prefix + "%"`; return the first match.
+- `getByShortPrefix`: `WHERE substr(id, 1, ?) = ? ORDER BY created_at DESC LIMIT 2` (so `%` and `_` are literal); return `null` when zero or more than one row matches, and the quiz when exactly one matches.
 - Add a `tx<T>(fn)` helper using `BEGIN`/`COMMIT`/`ROLLBACK`.
 - Map rows to `Quiz`/`Question`: choices ordered by `position`, `correctIndices` from `is_correct = 1`, accepted answers ordered by `position`.
 
