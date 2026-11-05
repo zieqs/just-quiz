@@ -2,16 +2,12 @@
 <script setup lang="ts">
 import type { Quiz } from '~/types/quiz';
 
-const { getAllQuizzes, deleteQuiz, upsertImportedQuiz } = useQuizDb();
-const { isSignedIn, isSaving, isLoading, signIn, saveAllToDrive, loadAllQuizzesFromDrive } = useGoogleDrive();
+const { getAllQuizzes, deleteQuiz } = useQuizDb();
 const { isFirstVisit, checkFirstVisit } = useFirstVisit();
 
 const quizzes = ref<Quiz[]>([]);
 const isImportOpen = ref(false);
 const isCreateMenuOpen = ref(false);
-const saveFeedback = ref(false);
-const loadFeedback = ref(false);
-const driveError = ref<string | null>(null);
 
 // --- Delete confirmation ---
 const quizToDelete = ref<Quiz | null>(null);
@@ -80,71 +76,6 @@ const cancelDelete = () => {
   quizToDelete.value = null;
 };
 
-// --- Google Drive actions ---
-
-const flashFeedback = (which: 'save' | 'load') => {
-  if (which === 'save') {
-    saveFeedback.value = true;
-    setTimeout(() => (saveFeedback.value = false), 2000);
-  } else {
-    loadFeedback.value = true;
-    setTimeout(() => (loadFeedback.value = false), 2000);
-  }
-};
-
-const handleSaveAll = async () => {
-  try {
-    if (!isSignedIn.value) await signIn();
-    await saveAllToDrive(quizzes.value);
-    driveError.value = null;
-    flashFeedback('save');
-  } catch (err: any) {
-    driveError.value = err.message || 'Save failed.';
-  }
-};
-
-const handleLoadAllFromDrive = async () => {
-  try {
-    if (!isSignedIn.value) await signIn();
-
-    const loaded = await loadAllQuizzesFromDrive();
-    if (loaded.length === 0) {
-      driveError.value = 'No saved quizzes found in Drive.';
-      return;
-    }
-
-    let created = 0;
-    let updated = 0;
-    let skipped = 0;
-
-    for (const item of loaded) {
-      const validation = validateQuizJson(item);
-      if (!validation.valid) {
-        skipped++;
-        continue;
-      }
-      const result = await upsertImportedQuiz(item);
-      if (result.created) created++;
-      else updated++;
-    }
-
-    await loadQuizzes();
-
-    if (created === 0 && updated === 0) {
-      driveError.value = `No valid quizzes were found in Drive${skipped > 0 ? ` (${skipped} quiz${skipped === 1 ? '' : 'zes'} skipped)` : ''}.`;
-    } else {
-      const parts = [];
-      if (created > 0) parts.push(`${created} new`);
-      if (updated > 0) parts.push(`${updated} updated`);
-      const summary = parts.join(', ');
-      driveError.value = null;
-      flashFeedback('load');
-    }
-  } catch (err: any) {
-    driveError.value = err.message || 'Failed to load quizzes from Drive.';
-  }
-};
-
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement | null;
   if (isCreateMenuOpen.value && target && !target.closest('[data-create-menu]')) {
@@ -193,29 +124,6 @@ onBeforeUnmount(() => {
 
         <div class="flex flex-col items-end gap-2">
           <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <!-- Secondary actions -->
-            <div class="flex h-10 w-full items-center rounded-xl border border-border bg-card p-1 shadow-sm sm:w-auto">
-              <!-- Save -->
-              <button @click="handleSaveAll" :disabled="isSaving"
-                class="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
-                :class="saveFeedback ? '!text-green-600 dark:!text-green-400' : ''"
-                title="Save all quizzes to Drive">
-                <AppIcon :name="saveFeedback ? 'lucide:check' : 'lucide:upload'" class="h-4 w-4" :stroke-width="2.5" />
-                <span>{{ isSaving ? 'Saving...' : saveFeedback ? 'Saved!' : 'Save Files' }}</span>
-              </button>
-
-              <span class="h-5 w-px bg-border" aria-hidden="true" />
-
-              <!-- Load -->
-              <button @click="handleLoadAllFromDrive" :disabled="isLoading"
-                class="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
-                :class="loadFeedback ? '!text-green-600 dark:!text-green-400' : ''"
-                title="Load quizzes from Drive">
-                <AppIcon :name="loadFeedback ? 'lucide:check' : 'lucide:download'" class="h-4 w-4" :stroke-width="2.5" />
-                <span>{{ isLoading ? 'Loading...' : loadFeedback ? 'Loaded!' : 'Load Files' }}</span>
-              </button>
-            </div>
-
             <!-- Create New dropdown -->
             <div class="relative w-full sm:w-auto" data-create-menu>
               <button @click="isCreateMenuOpen = !isCreateMenuOpen" :aria-expanded="isCreateMenuOpen"
@@ -257,12 +165,6 @@ onBeforeUnmount(() => {
             </div>
 
           </div>
-
-          <!-- Drive error -->
-          <p v-if="driveError" class="alert-error inline-flex max-w-sm items-start gap-2 px-3 py-2.5 text-sm">
-            <AppIcon name="lucide:info" class="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{{ driveError }}</span>
-          </p>
         </div>
       </div>
     </div>

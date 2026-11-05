@@ -10,7 +10,6 @@ const { sessions } = useQuizSession();
 const navLinks = [
     { label: 'About', to: '/about' },
     { label: 'Format', to: '/format' },
-    { label: 'Drive', to: '/setup' },
     { label: 'Dashboard', to: '/' },
 ];
 

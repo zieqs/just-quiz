@@ -14,13 +14,13 @@ const features = [
         icon: 'import',
     },
     {
-        title: 'Works anywhere, even offline',
-        description: 'Your quizzes are saved on your device, so you can study on the bus, in the library, or on a plane with zero internet connection.',
+        title: 'Stored on your machine',
+        description: 'Your quizzes are saved in a local SQLite database on the computer running JustQuiz, so your study data stays with you.',
         icon: 'offline',
     },
     {
         title: 'Private by design',
-        description: 'No account or servers. Your quizzes never leave your browser unless you choose to back them up to your own Google Drive.',
+        description: 'No account and no cloud service. Your quizzes never leave your machine; the app only talks to its own local database.',
         icon: 'private',
     },
 ];
@@ -55,7 +55,7 @@ const steps = [
                 <div class="space-y-8">
                     <div class="section-label fade-up">
                         <span class="section-label-dot" />
-                        <span class="font-mono text-xs uppercase tracking-[0.15em] text-accent">Study Tool · PWA · 100% Offline</span>
+                        <span class="font-mono text-xs uppercase tracking-[0.15em] text-accent">Study Tool · PWA · Local Database</span>
                     </div>
 
                     <h1 class="font-display text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-6xl fade-up-delay-1">
@@ -67,7 +67,7 @@ const steps = [
                     </h1>
 
                     <p class="max-w-lg text-lg leading-relaxed text-muted-foreground fade-up-delay-2">
-                        JustQuiz turns your lecture notes, textbook chapters, or study guides into interactive quizzes right in your browser. No account, no setup, no internet required.
+                        JustQuiz turns your lecture notes, textbook chapters, or study guides into interactive quizzes right in your browser. No account, no setup, no cloud service. Your quizzes are stored in a local database on this machine.
                     </p>
 
                     <div class="flex flex-col gap-4 sm:flex-row fade-up-delay-3">

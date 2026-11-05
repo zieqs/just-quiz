@@ -1,4 +1,4 @@
-import { normalizeQuiz, type Quiz, type QuizInput } from "~~/shared/quiz";
+import { type Quiz, type QuizInput } from "~~/shared/quiz";
 import { createQuizApi, type QuizFetcher } from "~/utils/quizApi";
 
 export const useQuizDb = () => {
@@ -26,26 +26,8 @@ export const useQuizDb = () => {
 
   const deleteQuiz = async (id: string) => api.remove(id);
 
-  // Temporary shim for the Drive merge flow, removed with Drive in Task 10.
-  const upsertImportedQuiz = async (rawQuiz: QuizInput | Quiz) => {
-    const title = (rawQuiz.title || "Untitled Quiz").trim().toLowerCase();
-    const existing = (await api.list()).find(
-      (quiz) => quiz.title.trim().toLowerCase() === title
-    );
-    const normalized = normalizeQuiz(rawQuiz);
-
-    if (existing) {
-      await api.update(existing.id, normalized);
-      return { created: false, id: existing.id };
-    }
-
-    const { id } = await api.create(normalized);
-    return { created: true, id };
-  };
-
   return {
     saveImportedQuiz,
-    upsertImportedQuiz,
     createQuiz,
     getQuiz,
     getQuizByShortId,

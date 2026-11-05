@@ -11,8 +11,8 @@ const baseURL = rawBaseURL.endsWith('/') ? rawBaseURL : `${rawBaseURL}/`;
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  // SPA mode — static output works on GitHub Pages without a Node server.
-  // All data lives in the browser (IndexedDB) + Google Drive.
+  // SPA mode — the UI stays a Vue single-page app; Nitro serves the local API.
+  // All data lives in the local SQLite database served by Nitro.
   ssr: false,
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', '@nuxt/icon'],
   nitro: {
@@ -97,11 +97,6 @@ export default defineNuxtConfig({
           href: `${baseURL}pwa-192.png`,
         },
       ],
-    },
-  },
-  runtimeConfig: {
-    public: {
-      googleDriveClientId: process.env.NUXT_PUBLIC_GOOGLE_DRIVE_CLIENT_ID || '',
     },
   },
   pwa: {
