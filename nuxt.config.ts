@@ -1,10 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
-// GitHub Pages serves the site from a sub-path like /just-quiz/
-// Set via env in CI (e.g. NUXT_APP_BASE_URL=${{ steps.pages.outputs.base_path }})
-// NOTE: configure-pages outputs a path WITHOUT a trailing slash (e.g. /just-quiz).
-// We normalize it here so string concatenation below (`${baseURL}manifest.webmanifest`)
-// produces valid URLs like /just-quiz/manifest.webmanifest instead of /just-quizmanifest.webmanifest.
+// Optional base path when the app is served from a sub-path (e.g. /just-quiz).
+// Defaults to "/" for local development.
 const rawBaseURL = process.env.NUXT_APP_BASE_URL || '/';
 const baseURL = rawBaseURL.endsWith('/') ? rawBaseURL : `${rawBaseURL}/`;
 
@@ -15,14 +12,6 @@ export default defineNuxtConfig({
   // All data lives in the local SQLite database served by Nitro.
   ssr: false,
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', '@nuxt/icon'],
-  nitro: {
-    // Force the "static" preset so `nuxt generate` emits a real index.html
-    // (otherwise Nuxt 4 produces a node-server bundle with no prerendered HTML).
-    preset: 'static',
-    prerender: {
-      routes: ['/'],
-    },
-  },
   icon: {
     serverBundle: {
       // Bundle icons at build time so the PWA works offline
