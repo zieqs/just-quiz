@@ -1,6 +1,7 @@
 <!-- app/components/ImportModal.vue -->
 <script setup lang="ts">
 import { parseQuizJson } from '~/utils/parseQuizJson';
+import { validateQuizJson } from '~~/shared/quiz';
 
 const emit = defineEmits(['close', 'quiz-added']);
 const { saveImportedQuiz } = useQuizDb();
